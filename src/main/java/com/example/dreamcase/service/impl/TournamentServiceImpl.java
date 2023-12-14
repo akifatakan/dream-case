@@ -9,6 +9,7 @@ import com.example.dreamcase.response.CountryLeaderboardResponse;
 import com.example.dreamcase.response.GroupLeaderboardResponse;
 import com.example.dreamcase.response.GroupRankResponse;
 import com.example.dreamcase.service.TournamentService;
+import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
@@ -34,8 +35,12 @@ public class TournamentServiceImpl implements TournamentService {
         if (!isUserEligibleForTournament(user)){
             throw new UnsatisfiedConstraintException("User must be at least level 20 and have more than 1000 coins");
         }
-        if (hasUserEnteredTournament(userId, today)) {
-            throw new DuplicateTournamentEntryException("User has already entered a tournament today.");
+        if (user.isInTournament()) {
+          if (user.getLastTournamentDate().toString().equals(today.toString())){
+                throw new DuplicateTournamentEntryException("User has already entered a tournament today.");
+            } else {
+              throw new DuplicateTournamentEntryException("User must claim reward to enter a new tournament.");
+          }
         }
 
         // Find a suitable group for the user
@@ -66,7 +71,7 @@ public class TournamentServiceImpl implements TournamentService {
         if (lastTournamentDate == null || !user.isInTournament()){
             throw new RuntimeException("There is no reward to claim");
         }
-        if (lastTournamentDate.equals(today) && LocalTime.now().isBefore(LocalTime.of(18, 45))){
+        if (lastTournamentDate.toString().equals(today.toString()) && LocalTime.now().isBefore(LocalTime.of(20, 00))){
             throw new RuntimeException("Reward claiming is only allowed after 8 pm.");
         }
 
@@ -175,11 +180,6 @@ public class TournamentServiceImpl implements TournamentService {
         return tournaments.stream()
                 .map(tournament -> tournament.getId().getGroupId())
                 .max(Long::compare).get();
-    }
-
-    private boolean hasUserEnteredTournament(Long userId, java.sql.Date today) {
-        // Check if there is any tournament entry for the user on the current day
-        return tournamentRepository.findByIdDay(today).stream().anyMatch(tournament -> tournament.getId().getUserId().equals(userId));
     }
 
     private List<Tournament> filterTournamentsByGroupId(List<Tournament> tournaments, Long groupId) {

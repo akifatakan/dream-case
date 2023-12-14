@@ -8,6 +8,7 @@ import com.example.dreamcase.request.CreateUserRequest;
 import com.example.dreamcase.service.UserService;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -38,8 +39,10 @@ public class UserServiceImpl implements UserService {
 
             if(user.isInTournament() && isGroupCompleted(userId)){
                 Tournament tournament = tournamentRepository.findByIdDayAndIdUserId(today, userId);
-                tournament.setTournamentScore(tournament.getTournamentScore() + 1);
-                tournamentRepository.save(tournament);
+                if (tournament.getId().getDay().toString().equals(today.toString()) && LocalTime.now().isBefore(LocalTime.of(20,00))){
+                    tournament.setTournamentScore(tournament.getTournamentScore() + 1);
+                    tournamentRepository.save(tournament);
+                }
             }
             userRepository.save(user);
 
